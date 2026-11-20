@@ -15,63 +15,98 @@ const tbody = table.querySelector("tbody");
 const status = $("status");
 const detail = $("detail");
 
+// A startup failure (a blocked module, an old browser) used to leave the page
+// looking alive but doing nothing; surface it instead.
+window.addEventListener("error", (event) => setStatus(`error: ${event.message}`));
+window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    setStatus(`error: ${reason?.message || reason}`);
+});
+
 let rows = [];
 let sortKey = "star";
 let sortDir = -1;
 let selected = null;
-let pendingRating = 0;
 
 // The sl/st network is heavy, so it runs in a worker; each row gets its value a
-// moment after the rest of its analysis lands.
-const ratingWorker = new Worker(new URL("./ratingWorker.js", import.meta.url), { type: "module" });
+// moment after the rest of its analysis lands.  If the browser cannot start a
+// module worker (or the script fails to load) the same model runs on the main
+// thread instead, a chart at a time, rather than leaving the column empty.
 const ratingQueue = [];
 const ratingWaiters = new Map();
+let ratingWorker = null;
+let ratingUseInline = false;
 let ratingBusy = false;
+let inlineModelPromise = null;
 
 function waitForRating(id) {
     if (rows.find((row) => row.id === id)?.slSt) return Promise.resolve();
     return new Promise((resolve) => ratingWaiters.set(id, resolve));
 }
 
-ratingWorker.onerror = (event) => {
-    ratingBusy = false;
-    const queued = ratingQueue.splice(0, ratingQueue.length);
-    for (const item of [...queued]) {
-        const row = rows.find((entry) => entry.id === item.id);
-        if (row) row.slSt = { error: event.message || "worker failed" };
-    }
-    setStatus(`sl/st worker failed: ${event.message || "unknown"}`);
-    render();
-    drainRatingQueue();
-};
-
-ratingWorker.onmessage = (event) => {
-    const { id, ok, error } = event.data;
+function finishRating(id, payload) {
     const row = rows.find((item) => item.id === id && !item.error);
     ratingBusy = false;
-    if (row) {
-        if (ok) {
-            row.slSt = event.data;
-        } else {
-            row.slSt = { error };
-        }
-    }
+    if (row) row.slSt = payload;
     render();
     if (selected && selected.id === id) showDetail(selected);
     ratingWaiters.get(id)?.();
     ratingWaiters.delete(id);
     drainRatingQueue();
-};
+}
+
+function createRatingWorker() {
+    if (ratingWorker || ratingUseInline) return ratingWorker;
+    try {
+        const worker = new Worker(new URL("./ratingWorker.js", import.meta.url), { type: "module" });
+        worker.onmessage = (event) => finishRating(event.data.id, event.data.ok
+            ? event.data
+            : { error: event.data.error || "rating failed" });
+        worker.onerror = (event) => {
+            // The worker never started (blocked, not supported, script error):
+            // fall back to the main thread for this and every later chart.
+            console.warn("sl/st worker unavailable, using the main thread", event.message);
+            ratingUseInline = true;
+            ratingWorker?.terminate();
+            ratingWorker = null;
+            ratingBusy = false;
+            drainRatingQueue();
+        };
+        worker.onmessageerror = () => {
+            ratingUseInline = true;
+            ratingBusy = false;
+            drainRatingQueue();
+        };
+        ratingWorker = worker;
+    } catch (error) {
+        console.warn("cannot start the sl/st worker", error);
+        ratingUseInline = true;
+    }
+    return ratingWorker;
+}
+
+async function scoreInline(windows) {
+    inlineModelPromise ??= import("./difficulty.js")
+        .then((module) => module.loadDifficultyModel(new URL("../models/difficulty.bin", import.meta.url)));
+    const model = await inlineModelPromise;
+    const result = model.score(windows);
+    return { ...result, modelCount: model.modelCount };
+}
 
 function drainRatingQueue() {
-    if (ratingBusy || !ratingQueue.length) {
-        pendingRating = ratingQueue.length;
-        return;
-    }
+    if (ratingBusy || !ratingQueue.length) return;
     const next = ratingQueue.shift();
     ratingBusy = true;
-    pendingRating = ratingQueue.length + 1;
-    ratingWorker.postMessage({ id: next.id, windows: next.windows.buffer }, [next.windows.buffer]);
+
+    const worker = createRatingWorker();
+    if (worker) {
+        worker.postMessage({ id: next.id, windows: next.windows.buffer }, [next.windows.buffer]);
+        return;
+    }
+
+    scoreInline(next.windows)
+        .then((result) => finishRating(next.id, result))
+        .catch((error) => finishRating(next.id, { error: error.message }));
 }
 
 function fmtDuration(ms) {
