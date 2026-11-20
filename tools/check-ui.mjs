@@ -9,13 +9,17 @@ const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 const url = process.argv[2] || "http://127.0.0.1:4173/?sample=1&open=1";
 const port = 9333;
 
+// A fresh profile per run, otherwise the browser happily serves the previous
+// build from its disk cache and the screenshot lies about what is deployed.
+const profile = `${process.env.TEMP}\\bms-web-cdp-${Date.now()}`;
+
 const browser = spawn(EDGE, [
     "--headless=new",
     "--disable-gpu",
     "--hide-scrollbars",
     "--window-size=1200,800",
     `--remote-debugging-port=${port}`,
-    "--user-data-dir=" + `${process.env.TEMP}\\bms-web-cdp`,
+    `--user-data-dir=${profile}`,
     "about:blank",
 ], { stdio: "ignore" });
 
@@ -72,7 +76,9 @@ const readRow = async () => {
 let text = "";
 for (let i = 0; i < 60; i++) {
     text = await readRow();
-    if (text && !text.includes("…")) break;
+    // "no row" means the page has not finished loading the chart yet, so keep waiting
+    // instead of reporting a row that is still missing.
+    if (text && text !== "no row" && !text.includes("…")) break;
     await sleep(500);
 }
 
