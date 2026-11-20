@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMS Difficulty — xxy star &amp; pattern</title>
+<link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+<header class="top">
+    <h1>BMS Difficulty</h1>
+    <p class="sub">xxy star rating (Sunny), dan label and pattern families, computed in the browser from the same engine the BmsInfo plugin uses.</p>
+</header>
+
+<section id="drop" class="drop">
+    <input id="files" type="file" multiple accept=".bms,.bme,.bml,.pms,.bmx" hidden>
+    <input id="folder" type="file" webkitdirectory directory multiple hidden>
+    <div class="drop-inner">
+        <strong>Drop charts here</strong>
+        <span>or</span>
+        <button id="pickFiles" type="button">choose files</button>
+        <button id="pickFolder" type="button">choose folder</button>
+        <span class="hint">.bms .bme .bml .pms .bmx — nothing is uploaded, everything runs locally</span>
+    </div>
+</section>
+
+<section class="toolbar">
+    <label>keymode
+        <select id="keymode">
+            <option value="keep" selected>keep scratch (8k)</option>
+            <option value="drop">drop scratch (7k)</option>
+            <option value="merge">merge scratch into key 1</option>
+        </select>
+    </label>
+    <label>rate
+        <input id="rate" type="number" min="0.5" max="3" step="0.05" value="1">
+    </label>
+    <button id="clear" type="button" class="ghost">clear</button>
+    <span id="status" class="status"></span>
+</section>
+
+<main>
+    <table id="results" class="results" hidden>
+        <thead>
+            <tr>
+                <th data-sort="title">chart</th>
+                <th data-sort="star" class="num">xxy</th>
+                <th data-sort="dan">dan</th>
+                <th data-sort="category">pattern</th>
+                <th data-sort="notes" class="num">notes</th>
+                <th data-sort="keys" class="num">keys</th>
+                <th data-sort="durationMs" class="num">length</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <aside id="detail" class="detail" hidden>
+        <button id="closeDetail" class="ghost close" type="button">close</button>
+        <h2 id="detailTitle"></h2>
+        <p id="detailMeta" class="meta"></p>
+        <div id="detailValues" class="values"></div>
+        <div id="detailPatterns" class="patterns"></div>
+        <details class="clusters">
+            <summary>clusters</summary>
+            <table id="clusterTable"></table>
+        </details>
+    </aside>
+</main>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
