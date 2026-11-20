@@ -17,8 +17,13 @@ const count = $("count");
 const detail = $("detail");
 const filter = $("filter");
 const patternFilter = $("patternFilter");
+const pager = $("pager");
+const pageLabel = $("pageLabel");
+const prevPage = $("prevPage");
+const nextPage = $("nextPage");
+const pageSizeSelect = $("pageSize");
 
-const RENDER_LIMIT = 400;
+let pageSize = 100;
 
 // A startup failure (a blocked module, an old browser) used to leave the page
 // looking alive but doing nothing; surface it instead.
@@ -33,6 +38,7 @@ let sortKey = "slStValue";
 let sortDir = -1;
 let selected = null;
 let filterText = "";
+let page = 0;
 
 // The sl/st network is heavy, so it runs in a worker; each row gets its value a
 // moment after the rest of its analysis lands.  If the browser cannot start a
@@ -139,7 +145,13 @@ function setStatus(text) {
 
 function render() {
     const sortValue = (row) => {
-        if (sortKey === "slStValue") return row.slSt && !row.slSt.error ? row.slSt.raw : -1;
+        if (sortKey === "slStValue") {
+            // Default rows carry the cached display string plus its raw value; rows
+            // scored in the browser carry the object. Both have to sort on the raw.
+            if (typeof row.slSt === "string") return typeof row.slStRaw === "number" ? row.slStRaw : -1;
+            return row.slSt && !row.slSt.error ? row.slSt.raw : -1;
+        }
+        if (sortKey === "title") return row.title || row.name || "";
         return row[sortKey];
     };
     const needle = filterText.trim().toLowerCase();
@@ -157,9 +169,10 @@ function render() {
         return String(av).localeCompare(String(bv), "ja") * sortDir;
     });
 
-    // A default set can hold tens of thousands of charts; only the first screenful
-    // is worth putting in the DOM.
-    const visible = sorted.slice(0, RENDER_LIMIT);
+    const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+    if (page >= pageCount) page = pageCount - 1;
+    const first = page * pageSize;
+    const visible = sorted.slice(first, first + pageSize);
     tbody.replaceChildren(...visible.map((row, index) => {
         const tr = document.createElement("tr");
         if (row === selected) tr.classList.add("active");
@@ -182,13 +195,19 @@ function render() {
             <td class="num">${row.error ? "—" : row.notes}</td>
             <td class="num">${row.error ? "—" : row.keys}</td>
             <td class="num">${row.error ? "—" : fmtDuration(row.durationMs)}</td>`;
-        tr.dataset.index = String(index);
+        tr.dataset.index = String(first + index);
         return tr;
     }));
 
-    count.textContent = sorted.length > visible.length
-        ? `${visible.length} of ${sorted.length} shown`
-        : sorted.length ? `${sorted.length} chart${sorted.length === 1 ? "" : "s"}` : "";
+    if (sorted.length > pageSize) {
+        count.textContent = `${first + 1}–${first + visible.length} of ${sorted.length}`;
+    } else {
+        count.textContent = sorted.length ? `${sorted.length} chart${sorted.length === 1 ? "" : "s"}` : "";
+    }
+    pager.hidden = sorted.length <= pageSize;
+    pageLabel.textContent = `page ${page + 1} / ${pageCount}`;
+    prevPage.disabled = page === 0;
+    nextPage.disabled = page >= pageCount - 1;
     table.hidden = rows.length === 0;
 }
 
@@ -350,7 +369,7 @@ function fillPatternFilter(source) {
     const options = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"));
     const keep = patternFilter.value;
     patternFilter.replaceChildren(
-        new Option("all patterns", ""),
+        new Option(`all patterns (${source.length})`, ""),
         ...options.map(([name, n]) => new Option(`${name} (${n})`, name)),
     );
     if (keep && counts.has(keep)) patternFilter.value = keep;
@@ -376,15 +395,20 @@ async function loadDefaultSet() {
 $("pickFiles").addEventListener("click", () => $("files").click());
 filter.addEventListener("input", () => {
     filterText = filter.value;
+    page = 0;
     render();
 });
-patternFilter.addEventListener("change", () => render());
+patternFilter.addEventListener("change", () => {
+    page = 0;
+    render();
+});
 $("pickFolder").addEventListener("click", () => $("folder").click());
 $("files").addEventListener("change", (event) => addFiles(event.target.files));
 $("folder").addEventListener("change", (event) => addFiles(event.target.files));
 $("clear").addEventListener("click", () => {
     rows = defaultSet;
     selected = null;
+    page = 0;
     detail.hidden = true;
     table.hidden = rows.length === 0;
     render();
@@ -404,8 +428,27 @@ document.querySelectorAll("th[data-sort]").forEach((th) => {
             sortKey = key;
             sortDir = key === "title" ? 1 : -1;
         }
+        page = 0;
         render();
     });
+});
+
+prevPage.addEventListener("click", () => {
+    if (page > 0) {
+        page -= 1;
+        render();
+        window.scrollTo({ top: 0 });
+    }
+});
+nextPage.addEventListener("click", () => {
+    page += 1;
+    render();
+    window.scrollTo({ top: 0 });
+});
+pageSizeSelect.addEventListener("change", () => {
+    pageSize = Number(pageSizeSelect.value) || 100;
+    page = 0;
+    render();
 });
 
 const drop = $("drop");

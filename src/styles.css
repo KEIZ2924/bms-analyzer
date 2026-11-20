@@ -137,3 +137,9 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
 .pending { color: #6b7280; }
 .slst-value { color: #7dd3fc; font-weight: 600; }
 
+
+.pager { display: flex; align-items: center; gap: 10px; margin: 14px 2px 40px; color: var(--dim); }
+.pager[hidden] { display: none; }
+.page-label { font-variant-numeric: tabular-nums; }
+.pager button { padding: 6px 12px; }
+.pager button:disabled { opacity: 0.35; cursor: default; }

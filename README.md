@@ -132,8 +132,11 @@ duration, xxy star, dan label, sl/st display and raw, mode, category, and the
 family/subtype shares. Rows are sorted by star, so the table opens on the hardest
 charts first.
 
-The table only puts the first 400 matched rows into the DOM; the counts next to the
-filter show how many matched.
+The table pages 100 rows at a time (250 or 500 available), so every chart is
+reachable: `1–100 of 34978`, `page 1 / 350`, `‹ prev` / `next ›`. Filtering,
+searching and sorting apply to the whole set before the page is cut, and the pattern
+dropdown lists each category with its chart count (`all patterns (34978)`,
+`Light Stream (6626)`, …).
 
 ## Layout
 
