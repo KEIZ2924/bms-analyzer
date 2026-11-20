@@ -223,7 +223,9 @@ function select(row) {
 
 function showDetail(row) {
     detail.hidden = false;
-    $("detailTitle").textContent = row.title || row.name;
+    const detailTitle = $("detailTitle");
+    detailTitle.textContent = row.title || row.name;
+    detailTitle.title = row.title || row.name;
     const metaBits = [row.artist];
     if (row.keys) metaBits.push(`${row.keys}k`);
     if (row.rows) metaBits.push(`${row.rows} rows`);

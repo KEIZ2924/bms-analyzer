@@ -71,7 +71,8 @@ button.ghost { background: transparent; color: var(--dim); }
 .toolbar select#patternFilter { border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; background: var(--panel); color: inherit; max-width: 220px; }
 .count { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
 
-main { display: grid; gap: 20px; align-items: start; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 24px; align-items: start; }
+.list { min-width: 0; }
 main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); }
 
 .results { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -106,8 +107,21 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
     padding: 18px;
     align-self: start;
     position: sticky; top: 16px;
+    min-width: 0;
+    overflow: hidden;
 }
 .detail .close { position: absolute; top: 12px; right: 12px; }
+.detail h2 {
+    margin: 0 40px 6px 0;
+    font-size: 20px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    /* Joke charts can carry 100-character titles; keep the values readable. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 .meta { color: var(--dim); margin: 0 0 14px; }
 
 .values { display: flex; gap: 26px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
