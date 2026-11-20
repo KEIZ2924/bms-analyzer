@@ -20,6 +20,7 @@ function compact(row, item) {
         t: meta.title || row.title || "",
         st: meta.subtitle || "",
         a: meta.artist || row.artist || "",
+        sa: item.sa || meta.subartist || "",
         k: row.keys,
         n: row.notes,
         d: Math.round(row.durationMs),

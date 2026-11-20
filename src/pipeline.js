@@ -91,7 +91,9 @@ export function analyseChart(bytes, options = {}) {
 
     return {
         title: chart.meta.title || "",
+        subtitle: chart.meta.subtitle || "",
         artist: chart.meta.artist || "",
+        subartist: chart.meta.subartist || "",
         meta: chart.meta,
         keys: sunnyMode.keys,
         notes: built.sunnyNotes.length,

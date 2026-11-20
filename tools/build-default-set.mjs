@@ -39,7 +39,7 @@ db.exec(`attach database '${cachePath.replaceAll("'", "''")}' as cache`);
 const marks = playlists.map(() => "?").join(",");
 const rows = db.prepare(`
     select distinct s.hash as hash, s.path as path,
-           c.raw as raw, c.display as display
+           c.raw as raw, c.display as display, s.subartist as subartist
     from playlist_entry p
     join song s on s.hash = p.md5
     left join cache.md5_model_cache c on c.md5 = p.md5
@@ -52,6 +52,7 @@ const items = rows.map((row) => ({
     path: row.path,
     slr: row.raw,
     sl: row.display || "",
+    sa: row.subartist || "",
 }));
 const targets = limit > 0 ? items.slice(0, limit) : items;
 const cached = targets.filter((item) => item.sl).length;

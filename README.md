@@ -101,16 +101,17 @@ The page opens on a set built from a local LR2 library, so it is useful before y
 drop anything onto it. `data/default-charts.json` holds every chart that appears in
 eight difficulty-table playlists (`66,29,51,62,73,88,91,78`: 発狂BMS, NEW GENERATION,
 Solomon, the 発狂DB, 現代発狂寄せ集め, 不放逸, 不放逸(旧), Satellite), analysed with
-the same pipeline the page runs — 34,981 rows from 34,988 charts.
+the same pipeline the page runs — 34,978 rows from 34,988 charts (deduplicated by md5).
 
 The chart column shows `title` with the chart's `subtitle` beside it (the BMS
 `#SUBTITLE`, e.g. `[ANOTHER]`), and the title links to
-`https://bms-ir.org/new/song?songmd5=<md5>`. Charts are deduplicated by md5, so a
-chart that sits in several playlists appears once. Dropping or choosing charts
-replaces the built-in table (the `reset` button brings it back). The pattern
-dropdown narrows the table to one category, the search box matches title, subtitle
-and dan, and `chart`, `xxy`, `sl/st`, `dan`, `pattern`, `notes`, `keys` and `length`
-headers all sort (click again to reverse). The default order is sl/st, descending.
+`https://bms-ir.org/new/song?songmd5=<md5>`. Dropping or choosing charts replaces
+the built-in table (the `reset` button brings it back). The detail panel repeats
+both (`title subtitle`) and puts `artist / subartist` above the values. The pattern
+dropdown narrows the table to one category, the search box matches title, subtitle,
+artist, subartist and dan, and `chart`, `xxy`, `sl/st`, `dan`, `pattern`, `notes`,
+`keys` and `length` headers all sort (click again to reverse). The default order is
+sl/st, descending.
 
 `sl/st` is taken from the plugin's cache (`difficulty_cache.db`), which holds the
 25-fold estimate for 34,984 of those charts, so building the table does not run the
@@ -127,10 +128,10 @@ node tools/build-default-set.mjs --db "E:/_BMS_/_OpenLR2_/LR2files/Database/song
 
 The script reads `playlist_entry`/`song`/`md5_model_cache` through `node:sqlite` (no
 dependencies), fans the charts out over worker threads, and writes compact rows:
-`{h,t,st,a,k,n,d,s,dan,sl,slr,m,c,f}` — hash, title, subtitle, artist, keys, notes,
-duration, xxy star, dan label, sl/st display and raw, mode, category, and the
-family/subtype shares. Rows are sorted by star, so the table opens on the hardest
-charts first.
+`{h,t,st,a,sa,k,n,d,s,dan,sl,slr,m,c,f}` — hash, title, subtitle, artist,
+subartist, keys, notes, duration, xxy star, dan label, sl/st display and raw, mode,
+category, and the family/subtype shares. Rows are sorted by star, so the table opens
+on the hardest charts first.
 
 The table pages 100 rows at a time (250 or 500 available), so every chart is
 reachable: `1–100 of 34978`, `page 1 / 350`, `‹ prev` / `next ›`. Filtering,

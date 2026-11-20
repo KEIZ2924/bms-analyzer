@@ -159,7 +159,7 @@ function render() {
     const matched = rows.filter((row) => {
         if (patternWanted && row.category !== patternWanted) return false;
         if (!needle) return true;
-        return `${row.title || row.name} ${row.subtitle || ""} ${row.category} ${row.dan}`
+        return `${row.title || row.name} ${row.subtitle || ""} ${row.artist || ""} ${row.subartist || ""} ${row.category} ${row.dan}`
             .toLowerCase().includes(needle);
     });
     const sorted = [...matched].sort((a, b) => {
@@ -223,10 +223,12 @@ function select(row) {
 
 function showDetail(row) {
     detail.hidden = false;
+    const label = [row.title || row.name, row.subtitle].filter(Boolean).join(" ");
     const detailTitle = $("detailTitle");
-    detailTitle.textContent = row.title || row.name;
-    detailTitle.title = row.title || row.name;
-    const metaBits = [row.artist];
+    detailTitle.textContent = label;
+    detailTitle.title = label;
+    const artist = [row.artist, row.subartist].filter(Boolean).join(" / ");
+    const metaBits = [artist];
     if (row.keys) metaBits.push(`${row.keys}k`);
     if (row.rows) metaBits.push(`${row.rows} rows`);
     if (row.durationMs) metaBits.push(fmtDuration(row.durationMs));
@@ -344,6 +346,7 @@ function fromDefaultSet(chart, index) {
         title: chart.t,
         subtitle: chart.st || "",
         artist: chart.a,
+        subartist: chart.sa || "",
         keys: chart.k,
         notes: chart.n,
         durationMs: chart.d,

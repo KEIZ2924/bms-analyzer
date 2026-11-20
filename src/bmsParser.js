@@ -330,6 +330,7 @@ export function parseBms(text, { randomSeedValue = 1 } = {}) {
         title: headers.TITLE || "",
         subtitle: headers.SUBTITLE || "",
         artist: headers.ARTIST || "",
+        subartist: headers.SUBARTIST || "",
         genre: headers.GENRE || "",
         bpm: headers.BPM || "",
         playlevel: headers.PLAYLEVEL || "",
