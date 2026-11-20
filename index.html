@@ -25,7 +25,12 @@
 </section>
 
 <section class="toolbar">
-    <button id="clear" type="button" class="ghost">clear</button>
+    <button id="clear" type="button" class="ghost">reset</button>
+    <input id="filter" type="search" placeholder="filter title, subtitle or dan" autocomplete="off">
+    <select id="patternFilter" title="filter by pattern">
+        <option value="">all patterns</option>
+    </select>
+    <span id="count" class="count"></span>
     <span id="status" class="status"></span>
 </section>
 
@@ -52,7 +57,7 @@
         <p id="detailMeta" class="meta"></p>
         <div id="detailValues" class="values"></div>
         <div id="detailPatterns" class="patterns"></div>
-        <details class="clusters">
+        <details id="clusterBox" class="clusters" hidden>
             <summary>clusters</summary>
             <table id="clusterTable"></table>
         </details>

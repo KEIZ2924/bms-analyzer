@@ -10,6 +10,7 @@
     "check:model": "node tools/check-model.mjs",
     "check:worker": "node tools/check-worker.mjs",
     "check:ui": "node tools/check-ui.mjs",
+    "build:default": "node tools/build-default-set.mjs",
     "bench": "node tools/bench.mjs"
   }
 }

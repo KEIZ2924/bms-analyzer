@@ -95,11 +95,48 @@ The rules carried over from the plugin, which differ from the upstream pattern e
 * the category is the family with the largest covered time, `Tech` is appended when
   more than half of that family is played at a changing BPM.
 
+## The default table
+
+The page opens on a set built from a local LR2 library, so it is useful before you
+drop anything onto it. `data/default-charts.json` holds every chart that appears in
+eight difficulty-table playlists (`66,29,51,62,73,88,91,78`: 発狂BMS, NEW GENERATION,
+Solomon, the 発狂DB, 現代発狂寄せ集め, 不放逸, 不放逸(旧), Satellite), analysed with
+the same pipeline the page runs — 34,981 rows from 34,988 charts.
+
+The chart column shows `title` with the chart's `subtitle` beside it (the BMS
+`#SUBTITLE`, e.g. `[ANOTHER]`). The pattern dropdown narrows the table to one
+category, the search box matches title, subtitle and dan, and `chart`, `xxy`, `sl/st`,
+`dan`, `pattern`, `notes`, `keys` and `length` headers all sort (click again to
+reverse). The default order is sl/st, descending.
+
+`sl/st` is taken from the plugin's cache (`difficulty_cache.db`), which holds the
+25-fold estimate for 34,984 of those charts, so building the table does not run the
+network 35k times. The two charts missing from the cache show `—`; anything you drop
+onto the page is still scored with the bundled five folds.
+
+Rebuild it with:
+
+```bash
+node tools/build-default-set.mjs --db "E:/_BMS_/_OpenLR2_/LR2files/Database/song.db"
+# --playlists 66,29,51 --cache <difficulty_cache.db> --out data/default-charts.json
+# --threads 8 --limit N (quick sample)
+```
+
+The script reads `playlist_entry`/`song`/`md5_model_cache` through `node:sqlite` (no
+dependencies), fans the charts out over worker threads, and writes compact rows:
+`{h,t,st,a,k,n,d,s,dan,sl,slr,m,c,f}` — hash, title, subtitle, artist, keys, notes,
+duration, xxy star, dan label, sl/st display and raw, mode, category, and the
+family/subtype shares. Rows are sorted by star, so the table opens on the hardest
+charts first.
+
+The table only puts the first 400 matched rows into the DOM; the counts next to the
+filter show how many matched.
+
 ## Layout
 
 ```
 index.html            page shell
-src/app.js            UI: drop zone, table, detail panel
+src/app.js            UI: drop zone, table, detail panel, default set
 src/pipeline.js       bytes -> star/dan/pattern/windows
 src/panel.js          clusters -> families -> category
 src/bmsParser.js      BMS parser (star + pattern)
@@ -108,13 +145,17 @@ src/featureParser.js  the plugin's own timeline reader (for the model)
 src/features.js       600x46 window matrix
 src/difficulty.js     five-fold network + sl/st ladder
 src/ratingWorker.js   runs the network off the main thread
+data/default-charts.json  the built-in table (playlist charts)
 models/difficulty.bin five folds, int8 weights (2.2 MB)
 vendor/om-analyzer/   analysis engine (Sunny, patterns, dan tables)
 tools/serve.mjs       static server (no dependencies)
+tools/build-default-set.mjs  builds data/default-charts.json from a song.db
+tools/build-worker.mjs       one slice of that build
 tools/verify.mjs      parity check against the plugin harness
 tools/check-model.mjs js forward vs the plugin's raw scores
 tools/check-worker.mjs the worker's message flow outside a browser
 tools/check-ui.mjs    headless browser round trip
+tools/check-pick.mjs  headless file-picker round trip
 tools/model-check.html end to end in one page
 tools/bench.mjs       timing
 samples/demo.bms      a small generated 4k chart for a smoke test

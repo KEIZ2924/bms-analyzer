@@ -66,14 +66,30 @@ button.ghost { background: transparent; color: var(--dim); }
     border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit;
 }
 .toolbar input[type=number] { width: 72px; }
-.status { margin-left: auto; }
+.status { }
+.toolbar input#filter { flex: 0 1 300px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font: inherit; background: var(--panel); color: inherit; }
+.toolbar select#patternFilter { border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; background: var(--panel); color: inherit; max-width: 220px; }
+.count { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
 
 main { display: grid; gap: 20px; align-items: start; }
 main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); }
 
-.results { width: 100%; border-collapse: collapse; }
+.results { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .results th, .results td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); }
 .results th { color: var(--dim); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.results td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.results td.chart .chart-title { margin-right: 8px; }
+.results td.chart .chart-sub { color: var(--dim); font-size: 12.5px; }
+
+/* The chart column only needs enough room for a name; the rest is numbers. */
+.results th:nth-child(1), .results td:nth-child(1) { width: 22%; }
+.results th:nth-child(2), .results td:nth-child(2) { width: 7%; }
+.results th:nth-child(3), .results td:nth-child(3) { width: 8%; }
+.results th:nth-child(4), .results td:nth-child(4) { width: 24%; }
+.results th:nth-child(5), .results td:nth-child(5) { width: 22%; }
+.results th:nth-child(6), .results td:nth-child(6) { width: 6%; }
+.results th:nth-child(7), .results td:nth-child(7) { width: 5%; }
+.results th:nth-child(8), .results td:nth-child(8) { width: 6%; }
 .results td.num, .results th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .results tbody tr { cursor: pointer; }
 .results tbody tr:hover { background: var(--panel); }
@@ -92,9 +108,9 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
 .detail .close { position: absolute; top: 12px; right: 12px; }
 .meta { color: var(--dim); margin: 0 0 14px; }
 
-.values { display: flex; gap: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.values div { display: flex; flex-direction: column; }
-.values dt { color: var(--dim); font-size: 12px; }
+.values { display: flex; gap: 26px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.values div { display: flex; flex-direction: column; gap: 3px; min-width: 74px; }
+.values dt { color: var(--dim); font-size: 12px; letter-spacing: .02em; }
 .values dd { margin: 0; font-size: 17px; font-variant-numeric: tabular-nums; }
 
 .patterns { margin-top: 14px; display: grid; gap: 12px; }
@@ -118,3 +134,4 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
 }
 .pending { color: #6b7280; }
 .slst-value { color: #7dd3fc; font-weight: 600; }
+

@@ -252,7 +252,7 @@ export async function loadDifficultyModel(url = "models/difficulty.bin") {
 }
 
 /** Same as loadDifficultyModel but takes the blob bytes directly (used by tools). */
-export function loadDifficultyFromBuffer(buffer) {
+export function loadDifficultyFromBuffer(buffer, { limit = 0 } = {}) {
     const reader = new Reader(buffer);
 
     const magic = String.fromCharCode(reader.u8(), reader.u8(), reader.u8(), reader.u8());
@@ -293,6 +293,8 @@ export function loadDifficultyFromBuffer(buffer) {
         model.headBias = tensors[23];
         models.push(model);
     }
+
+    if (limit > 0 && limit < models.length) models.length = limit;
 
     const scratch = {
         norm: new Float32Array(ROW_COUNT * FEATURE_DIM),

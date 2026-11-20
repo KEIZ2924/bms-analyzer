@@ -13,7 +13,12 @@ const $ = (id) => document.getElementById(id);
 const table = $("results");
 const tbody = table.querySelector("tbody");
 const status = $("status");
+const count = $("count");
 const detail = $("detail");
+const filter = $("filter");
+const patternFilter = $("patternFilter");
+
+const RENDER_LIMIT = 400;
 
 // A startup failure (a blocked module, an old browser) used to leave the page
 // looking alive but doing nothing; surface it instead.
@@ -24,9 +29,10 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 let rows = [];
-let sortKey = "star";
+let sortKey = "slStValue";
 let sortDir = -1;
 let selected = null;
+let filterText = "";
 
 // The sl/st network is heavy, so it runs in a worker; each row gets its value a
 // moment after the rest of its analysis lands.  If the browser cannot start a
@@ -122,7 +128,7 @@ function fmtShare(share) {
 
 function fmtSlSt(row) {
     if (row.error) return "—";
-    if (!row.slSt) return '<span class="pending">…</span>';
+    if (!row.slSt) return row.fromDefaultSet ? "—" : '<span class="pending">…</span>';
     if (row.slSt.error) return `<span class="error">${escapeHtml(row.slSt.error)}</span>`;
     return `<span class="slst-value">${escapeHtml(row.slSt.display)}</span>`;
 }
@@ -136,19 +142,31 @@ function render() {
         if (sortKey === "slStValue") return row.slSt && !row.slSt.error ? row.slSt.raw : -1;
         return row[sortKey];
     };
-    const sorted = [...rows].sort((a, b) => {
+    const needle = filterText.trim().toLowerCase();
+    const patternWanted = patternFilter.value;
+    const matched = rows.filter((row) => {
+        if (patternWanted && row.category !== patternWanted) return false;
+        if (!needle) return true;
+        return `${row.title || row.name} ${row.subtitle || ""} ${row.category} ${row.dan}`
+            .toLowerCase().includes(needle);
+    });
+    const sorted = [...matched].sort((a, b) => {
         const av = sortValue(a);
         const bv = sortValue(b);
         if (typeof av === "number" && typeof bv === "number") return (av - bv) * sortDir;
         return String(av).localeCompare(String(bv), "ja") * sortDir;
     });
 
-    tbody.replaceChildren(...sorted.map((row, index) => {
+    // A default set can hold tens of thousands of charts; only the first screenful
+    // is worth putting in the DOM.
+    const visible = sorted.slice(0, RENDER_LIMIT);
+    tbody.replaceChildren(...visible.map((row, index) => {
         const tr = document.createElement("tr");
         if (row === selected) tr.classList.add("active");
         tr.addEventListener("click", () => select(row));
         tr.innerHTML = `
-            <td>${escapeHtml(row.title || row.name)}</td>
+            <td class="chart"><span class="chart-title">${escapeHtml(row.title || row.name)}</span>${
+                row.subtitle ? `<span class="chart-sub">${escapeHtml(row.subtitle)}</span>` : ""}</td>
             <td class="num"><span class="star">${row.error ? "—" : row.star.toFixed(2)}</span></td>
             <td class="num slst">${fmtSlSt(row)}</td>
             <td class="dan">${row.error ? "—" : escapeHtml(row.dan)}</td>
@@ -160,6 +178,9 @@ function render() {
         return tr;
     }));
 
+    count.textContent = sorted.length > visible.length
+        ? `${visible.length} of ${sorted.length} shown`
+        : sorted.length ? `${sorted.length} chart${sorted.length === 1 ? "" : "s"}` : "";
     table.hidden = rows.length === 0;
 }
 
@@ -176,7 +197,10 @@ function select(row) {
 function showDetail(row) {
     detail.hidden = false;
     $("detailTitle").textContent = row.title || row.name;
-    const metaBits = [row.artist, `${row.keys}k`, `${row.rows} rows`, fmtDuration(row.durationMs)];
+    const metaBits = [row.artist];
+    if (row.keys) metaBits.push(`${row.keys}k`);
+    if (row.rows) metaBits.push(`${row.rows} rows`);
+    if (row.durationMs) metaBits.push(fmtDuration(row.durationMs));
     if (row.longNotes) metaBits.push(`${row.longNotes} LN`);
     if (row.meta?.level) metaBits.push(`level ${row.meta.level}`);
     $("detailMeta").textContent = metaBits.filter(Boolean).join(" · ");
@@ -215,9 +239,11 @@ function showDetail(row) {
     }));
 
     const clusterTable = $("clusterTable");
+    const clusters = row.clusters || [];
+    $("clusterBox").hidden = clusters.length === 0;
     const head = document.createElement("tr");
     head.innerHTML = "<td>cluster</td><td>bpm</td><td>amount</td><td>labels</td>";
-    const body = row.clusters.slice(0, 12).map((cluster) => {
+    const body = clusters.slice(0, 12).map((cluster) => {
         const tr = document.createElement("tr");
         const labels = cluster.specificTypes.map(([name, ratio]) => `${name} ${fmtShare(ratio)}`).join("，");
         tr.innerHTML = `<td>${escapeHtml(cluster.pattern)}</td><td>${cluster.mixed ? "~" : ""}${cluster.bpm}</td>`
@@ -261,19 +287,88 @@ async function addFiles(fileList) {
     }
 
     setStatus(`${rows.length} chart${rows.length === 1 ? "" : "s"} analysed`);
+    fillPatternFilter(rows);
     render();
 }
 
+// The repository ships a table built from a local LR2 library (see
+// tools/build-default-set.mjs): it is what the page shows before anything is
+// dropped onto it, and what "clear" goes back to.
+let defaultSet = [];
+
+function fromDefaultSet(chart, index) {
+    return {
+        id: `set:${index}`,
+        name: chart.t,
+        title: chart.t,
+        subtitle: chart.st || "",
+        artist: chart.a,
+        keys: chart.k,
+        notes: chart.n,
+        durationMs: chart.d,
+        star: chart.s,
+        dan: chart.dan,
+        modeTag: chart.m,
+        category: chart.c,
+        slSt: chart.sl ? { display: chart.sl, raw: chart.slr } : null,
+        families: (chart.f || []).map(([pattern, share, subs]) => ({
+            pattern,
+            share,
+            subtypes: (subs || []).map(([name, ratio]) => ({ name, share: ratio })),
+        })),
+        clusters: [],
+        fromDefaultSet: true,
+    };
+}
+
+function fillPatternFilter(source) {
+    const counts = new Map();
+    for (const row of source) {
+        if (!row.category) continue;
+        counts.set(row.category, (counts.get(row.category) || 0) + 1);
+    }
+    const options = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"));
+    const keep = patternFilter.value;
+    patternFilter.replaceChildren(
+        new Option("all patterns", ""),
+        ...options.map(([name, n]) => new Option(`${name} (${n})`, name)),
+    );
+    if (keep && counts.has(keep)) patternFilter.value = keep;
+}
+
+async function loadDefaultSet() {
+    try {
+        const response = await fetch("data/default-charts.json");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        defaultSet = (payload.charts || []).map(fromDefaultSet);
+        fillPatternFilter(defaultSet);
+        if (!rows.length) {
+            rows = defaultSet;
+            render();
+            setStatus("default set");
+        }
+    } catch (error) {
+        setStatus(`default set unavailable (${error.message}) — drop charts to analyse them`);
+    }
+}
+
 $("pickFiles").addEventListener("click", () => $("files").click());
+filter.addEventListener("input", () => {
+    filterText = filter.value;
+    render();
+});
+patternFilter.addEventListener("change", () => render());
 $("pickFolder").addEventListener("click", () => $("folder").click());
 $("files").addEventListener("change", (event) => addFiles(event.target.files));
 $("folder").addEventListener("change", (event) => addFiles(event.target.files));
 $("clear").addEventListener("click", () => {
-    rows = [];
+    rows = defaultSet;
     selected = null;
     detail.hidden = true;
-    table.hidden = true;
-    setStatus("");
+    table.hidden = rows.length === 0;
+    render();
+    setStatus(rows.length ? "default set" : "");
 });
 $("closeDetail").addEventListener("click", () => {
     detail.hidden = true;
@@ -333,4 +428,6 @@ if (params.has("sample") || params.has("chart")) {
             return undefined;
         })
         .catch((error) => setStatus(`sample failed: ${error.message}`));
+} else {
+    loadDefaultSet();
 }
