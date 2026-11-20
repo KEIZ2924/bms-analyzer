@@ -82,12 +82,12 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
 .results td.chart .chart-sub { color: var(--dim); font-size: 12.5px; }
 
 /* The chart column only needs enough room for a name; the rest is numbers. */
-.results th:nth-child(1), .results td:nth-child(1) { width: 22%; }
+.results th:nth-child(1), .results td:nth-child(1) { width: 21%; }
 .results th:nth-child(2), .results td:nth-child(2) { width: 7%; }
 .results th:nth-child(3), .results td:nth-child(3) { width: 8%; }
-.results th:nth-child(4), .results td:nth-child(4) { width: 24%; }
-.results th:nth-child(5), .results td:nth-child(5) { width: 22%; }
-.results th:nth-child(6), .results td:nth-child(6) { width: 6%; }
+.results th:nth-child(4), .results td:nth-child(4) { width: 23%; }
+.results th:nth-child(5), .results td:nth-child(5) { width: 21%; }
+.results th:nth-child(6), .results td:nth-child(6) { width: 7%; }
 .results th:nth-child(7), .results td:nth-child(7) { width: 5%; }
 .results th:nth-child(8), .results td:nth-child(8) { width: 6%; }
 .results td.num, .results th.num { text-align: right; font-variant-numeric: tabular-nums; }
