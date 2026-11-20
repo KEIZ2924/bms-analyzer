@@ -199,8 +199,8 @@ async function addFiles(fileList) {
         return;
     }
 
-    const keymode = $("keymode").value;
-    const rate = Number($("rate").value) || 1;
+    const keymode = "drop";
+    const rate = 1;
     let done = 0;
     setStatus(`analysing 0/${files.length}`);
 
@@ -273,15 +273,6 @@ for (const type of ["dragleave", "drop"]) {
 }
 drop.addEventListener("drop", (event) => {
     if (event.dataTransfer?.files?.length) addFiles(event.dataTransfer.files);
-});
-
-$("keymode").addEventListener("change", () => {
-    if (rows.length) {
-        rows = [];
-        setStatus("keymode changed — drop the charts again");
-        table.hidden = true;
-        detail.hidden = true;
-    }
 });
 
 // `?sample=1` analyses the bundled 4k demo chart, which is handy for a quick

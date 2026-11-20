@@ -20,7 +20,7 @@ row for the details.
 
 | column | meaning |
 | --- | --- |
-| xxy | Sunny star rating (OD 8, rate 1.0 unless changed); the scratch lane is always counted, like the plugin |
+| xxy | Sunny star rating (OD 8, rate 1.0); the scratch lane is always counted, like the plugin |
 | sl/st | the plugin's ONNX difficulty network, as `sl3.7` / `st7.6` / `st+` |
 | dan | dan label from the star rating and the LN ratio (`Regular Azimuth low`, `LN Stellium high`, …) |
 | pattern | heaviest pattern family, with its heaviest subtype when it owns more than 5% |
@@ -32,7 +32,7 @@ subtypes that make it up, plus the raw clusters (BPM, seconds, labels).
 ## How it works
 
 ```
-bytes ─▶ bmsParser ─▶ keymode ─▶ sanitize ─▶ osu text ─┬─▶ Sunny ─▶ star ─▶ dan
+bytes ─▶ bmsParser ─▶ drop scratch ─▶ sanitize ─▶ osu text ─┬─▶ Sunny ─▶ star ─▶ dan
                                                         └─▶ pattern windows ─▶ clusters ─▶ families
 bytes ─▶ featureParser ─▶ features ─▶ worker ─▶ ONNX net ─▶ sl/st
 ```
@@ -127,7 +127,7 @@ fetch.
 ## Known limitations
 
 * the pattern pass ignores the scratch lane entirely, so scratch-heavy charts read as
-  7K charts (the `keymode` selector defaults to that; `keep` analyses all eight lanes);
+  7K charts (the star rating still counts the scratch lane, like the plugin);
 * `sl/st` comes from five of the plugin's 25 folds, so it can differ by a couple of
   thousandths — visible only if a chart sits exactly on a ladder step;
 * `#RANDOM` uses the first branch only, so charts with branches are read deterministically;
