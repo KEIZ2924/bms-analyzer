@@ -91,9 +91,17 @@ for (let i = 0; i < threads; i++) {
 await Promise.all(workers);
 process.stdout.write("\n");
 
-const charts = collected
-    .filter((row) => !row.error)
-    .sort((a, b) => b.s - a.s || a.t.localeCompare(b.t, "ja"));
+const charts = [];
+const seen = new Set();
+for (const row of collected) {
+    if (row.error) continue;
+    // The same md5 can sit in several playlists and even map to two song rows;
+    // the table wants one line per chart.
+    if (seen.has(row.h)) continue;
+    seen.add(row.h);
+    charts.push(row);
+}
+charts.sort((a, b) => b.s - a.s || a.t.localeCompare(b.t, "ja"));
 const failed = collected.filter((row) => row.error);
 if (failed.length) {
     console.log(`failed   ${failed.length}, first: ${failed[0].path} (${failed[0].error})`);

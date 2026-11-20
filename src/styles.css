@@ -78,7 +78,8 @@ main:has(.detail:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(3
 .results th, .results td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); }
 .results th { color: var(--dim); font-weight: 500; cursor: pointer; white-space: nowrap; }
 .results td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.results td.chart .chart-title { margin-right: 8px; }
+.results td.chart .chart-title { margin-right: 8px; color: inherit; text-decoration: none; }
+.results td.chart a.chart-title:hover { text-decoration: underline; }
 /* The subtitle is part of the chart label, so it keeps the title's font and colour. */
 .results td.chart .chart-sub { }
 

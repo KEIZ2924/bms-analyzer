@@ -104,10 +104,13 @@ Solomon, the 発狂DB, 現代発狂寄せ集め, 不放逸, 不放逸(旧), Sate
 the same pipeline the page runs — 34,981 rows from 34,988 charts.
 
 The chart column shows `title` with the chart's `subtitle` beside it (the BMS
-`#SUBTITLE`, e.g. `[ANOTHER]`). The pattern dropdown narrows the table to one
-category, the search box matches title, subtitle and dan, and `chart`, `xxy`, `sl/st`,
-`dan`, `pattern`, `notes`, `keys` and `length` headers all sort (click again to
-reverse). The default order is sl/st, descending.
+`#SUBTITLE`, e.g. `[ANOTHER]`), and the title links to
+`https://bms-ir.org/new/song?songmd5=<md5>`. Charts are deduplicated by md5, so a
+chart that sits in several playlists appears once. Dropping or choosing charts
+replaces the built-in table (the `reset` button brings it back). The pattern
+dropdown narrows the table to one category, the search box matches title, subtitle
+and dan, and `chart`, `xxy`, `sl/st`, `dan`, `pattern`, `notes`, `keys` and `length`
+headers all sort (click again to reverse). The default order is sl/st, descending.
 
 `sl/st` is taken from the plugin's cache (`difficulty_cache.db`), which holds the
 25-fold estimate for 34,984 of those charts, so building the table does not run the

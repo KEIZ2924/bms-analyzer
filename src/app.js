@@ -163,9 +163,17 @@ function render() {
     tbody.replaceChildren(...visible.map((row, index) => {
         const tr = document.createElement("tr");
         if (row === selected) tr.classList.add("active");
-        tr.addEventListener("click", () => select(row));
+        tr.addEventListener("click", (event) => {
+            // The title is a link to bms-ir; following it should not also open the
+            // detail panel.
+            if (event.target.closest("a")) return;
+            select(row);
+        });
+        const titleHtml = row.url
+            ? `<a class="chart-title" href="${row.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.title || row.name)}</a>`
+            : `<span class="chart-title">${escapeHtml(row.title || row.name)}</span>`;
         tr.innerHTML = `
-            <td class="chart"><span class="chart-title">${escapeHtml(row.title || row.name)}</span>${
+            <td class="chart">${titleHtml}${
                 row.subtitle ? `<span class="chart-sub">${escapeHtml(row.subtitle)}</span>` : ""}</td>
             <td class="num"><span class="star">${row.error ? "—" : row.star.toFixed(2)}</span></td>
             <td class="num slst">${fmtSlSt(row)}</td>
@@ -260,6 +268,16 @@ async function addFiles(fileList) {
         return;
     }
 
+    // A manual import replaces the built-in table instead of piling on top of it.
+    if (rows.some((row) => row.fromDefaultSet)) {
+        rows = [];
+        selected = null;
+        detail.hidden = true;
+        filter.value = "";
+        filterText = "";
+        patternFilter.value = "";
+    }
+
     const keymode = "drop";
     const rate = 1;
     let done = 0;
@@ -299,6 +317,8 @@ let defaultSet = [];
 function fromDefaultSet(chart, index) {
     return {
         id: `set:${index}`,
+        md5: chart.h,
+        url: chart.h ? `https://bms-ir.org/new/song?songmd5=${chart.h}` : "",
         name: chart.t,
         title: chart.t,
         subtitle: chart.st || "",
