@@ -4,6 +4,8 @@ A standalone web tool that reads BMS charts and shows what the **BmsInfo** plugi
 OpenLR2 shows: the xxy star rating (the Sunny algorithm), the dan label, and the
 pattern families with their subtypes.
 
+**Try it: <https://keiz2924.github.io/bms-analyzer/>**
+
 Everything runs in the browser. You drop charts (or pick a folder) and the numbers
 appear; nothing is uploaded anywhere.
 
