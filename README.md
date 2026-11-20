@@ -20,7 +20,8 @@ row for the details.
 
 | column | meaning |
 | --- | --- |
-| xxy | Sunny star rating (OD 8, rate 1.0 unless changed) |
+| xxy | Sunny star rating (OD 8, rate 1.0 unless changed); the scratch lane is always counted, like the plugin |
+| sl/st | the plugin's ONNX difficulty network, as `sl3.7` / `st7.6` / `st+` |
 | dan | dan label from the star rating and the LN ratio (`Regular Azimuth low`, `LN Stellium high`, …) |
 | pattern | heaviest pattern family, with its heaviest subtype when it owns more than 5% |
 | notes / keys / length | note count, keycount after the scratch rule, chart length |
@@ -33,6 +34,7 @@ subtypes that make it up, plus the raw clusters (BPM, seconds, labels).
 ```
 bytes ─▶ bmsParser ─▶ keymode ─▶ sanitize ─▶ osu text ─┬─▶ Sunny ─▶ star ─▶ dan
                                                         └─▶ pattern windows ─▶ clusters ─▶ families
+bytes ─▶ featureParser ─▶ features ─▶ worker ─▶ ONNX net ─▶ sl/st
 ```
 
 * `src/bmsParser.js` — BMS/BME/BML/PMS parser: `#BPMxx`, `#STOPxx`, `#LNOBJ`, `#LNTYPE`,
@@ -44,10 +46,17 @@ bytes ─▶ bmsParser ─▶ keymode ─▶ sanitize ─▶ osu text ─┬─�
   changes listed below applied to `patternsDef.js` / `findPatterns.js` / `clustering.js`.
 * `src/panel.js` — the family / subtype panel: real unions instead of the double
   counting `Amount`, `Stream` shown as `Speed`, light chordstreams folded into it.
+* `src/featureParser.js` + `src/features.js` — the plugin's own BMS timeline reader and
+  its 46 features per 600 ms window (a separate parser from `bmsParser.js`, on purpose:
+  it is what the model was trained on).
+* `models/difficulty.bin` — five of the plugin's 25 ONNX folds, int8 weights, 2.2 MB.
+  `src/difficulty.js` runs them and averages the predictions with the same IQR-trimmed
+  mean the plugin uses; `src/ratingWorker.js` keeps that off the main thread.
 * `src/app.js` — the page.
 
-Charts are analysed at roughly **30 ms each** (measured on 28 seven-key charts), so a
-folder of a few hundred charts finishes in a few seconds.
+Star/dan/pattern work out to roughly **30 ms per chart** (28 seven-key charts); the
+network adds ~**400 ms** per chart because five folds run one after another in the
+worker, so the `sl/st` cell fills in a moment after the rest of the row.
 
 ## Matching the plugin
 
@@ -62,6 +71,19 @@ node tools/verify.mjs "D:\path\to\chart.bms"
 On the 28 chart test set plus five scratch charts the two agree on **33/33 categories**
 and on the star rating within `5e-6` (the remaining difference is a note that lands on
 a half millisecond and rounds differently in the two time accumulators).
+
+For `sl/st` the checks are separate, because those numbers come from the network rather
+than from the rule engine:
+
+```
+node tools/check-worker.mjs    # one fold set, end to end, outside the browser
+node tools/check-ui.mjs        # drives a headless browser and reads the table cell
+```
+
+Five folds instead of the plugin's 25 move the raw score by at most `0.0023` on six test
+charts (`node tools/check-model.mjs`), well inside one step of the `sl/st` ladder, and
+the feature windows themselves match the plugin's `--features` dump exactly (`node
+tools/check-features.mjs <chart> <windows.bin>`).
 
 The rules carried over from the plugin, which differ from the upstream pattern engine:
 
@@ -78,24 +100,36 @@ The rules carried over from the plugin, which differ from the upstream pattern e
 ```
 index.html            page shell
 src/app.js            UI: drop zone, table, detail panel
-src/pipeline.js       bytes -> star/dan/pattern
+src/pipeline.js       bytes -> star/dan/pattern/windows
 src/panel.js          clusters -> families -> category
-src/bmsParser.js      BMS parser
+src/bmsParser.js      BMS parser (star + pattern)
 src/osuBridge.js      note cleanup + osu text writer
+src/featureParser.js  the plugin's own timeline reader (for the model)
+src/features.js       600x46 window matrix
+src/difficulty.js     five-fold network + sl/st ladder
+src/ratingWorker.js   runs the network off the main thread
+models/difficulty.bin five folds, int8 weights (2.2 MB)
 vendor/om-analyzer/   analysis engine (Sunny, patterns, dan tables)
 tools/serve.mjs       static server (no dependencies)
 tools/verify.mjs      parity check against the plugin harness
+tools/check-model.mjs js forward vs the plugin's raw scores
+tools/check-worker.mjs the worker's message flow outside a browser
+tools/check-ui.mjs    headless browser round trip
+tools/model-check.html end to end in one page
 tools/bench.mjs       timing
 samples/demo.bms      a small generated 4k chart for a smoke test
 ```
 
 `?sample=1` analyses the bundled demo chart; `?sample=1&open=1` also opens its detail
-panel (handy for headless screenshots).
+panel (handy for headless screenshots). `?chart=<url>` loads any chart the page can
+fetch.
 
 ## Known limitations
 
 * the pattern pass ignores the scratch lane entirely, so scratch-heavy charts read as
-  7K charts;
+  7K charts (the `keymode` selector defaults to that; `keep` analyses all eight lanes);
+* `sl/st` comes from five of the plugin's 25 folds, so it can differ by a couple of
+  thousandths — visible only if a chart sits exactly on a ladder step;
 * `#RANDOM` uses the first branch only, so charts with branches are read deterministically;
 * 2P (`21`–`29`, `61`–`69`) lanes are counted as notes but do not take part in the
   pattern families;

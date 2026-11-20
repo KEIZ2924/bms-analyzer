@@ -5,6 +5,8 @@
 
 import { decodeBms, parseBms, toKeymode } from "./bmsParser.js";
 import { sanitizeLaneNotes, buildOsuText } from "./osuBridge.js";
+import { parseTimeline } from "./featureParser.js";
+import { buildInferenceWindows } from "./features.js";
 import { calculate } from "../vendor/om-analyzer/rework/sunnyAlgorithm.js";
 import { parseOsuManiaFromText } from "../vendor/om-analyzer/parser/patternOsuParser.js";
 import { fromChart } from "../vendor/om-analyzer/patterns/summary.js";
@@ -27,9 +29,11 @@ function normaliseColumns(chart, keymode) {
 function buildCharts(bytes, keymodeName) {
     const text = decodeFile(bytes);
     const chart = parseBms(text);
-    const sunnyMode = toKeymode(chart, keymodeName === "drop" ? "keep" : keymodeName);
+    // xxy always sees the scratch lane, exactly like the BmsInfo plugin; the
+    // keymode only picks the column set the pattern engine analyses.
+    const sunnyMode = toKeymode(chart, "keep");
     const sunnyNotes = sanitizeLaneNotes(sunnyMode.notes).notes;
-    const patternMode = toKeymode(chart, "drop");
+    const patternMode = toKeymode(chart, keymodeName);
     const patternNotes = sanitizeLaneNotes(patternMode.notes).notes;
 
     const sunnyText = buildOsuText({
@@ -51,7 +55,7 @@ function buildCharts(bytes, keymodeName) {
         od: SUNNY_OD,
     });
 
-    return { chart, sunnyText, patternText, sunnyMode, patternMode, sunnyNotes, patternNotes };
+    return { chart, text, sunnyText, patternText, sunnyMode, patternMode, sunnyNotes, patternNotes };
 }
 
 export function analyseChart(bytes, options = {}) {
@@ -74,6 +78,16 @@ export function analyseChart(bytes, options = {}) {
     const windows = find(patternChart);
     const durationMs = Math.max(1, patternChart.LastNote - patternChart.FirstNote);
     const panel = analyseWindows(windows, durationMs, report.ModeTag);
+
+    // --- sl/st difficulty model ------------------------------------------
+    // The 600x46 window matrix is cheap to build but the network is not, so the
+    // caller hands it to a worker (see ratingWorker.js).
+    let windowMatrix = null;
+    try {
+        windowMatrix = buildInferenceWindows(parseTimeline(built.text));
+    } catch (error) {
+        windowMatrix = null;
+    }
 
     return {
         title: chart.meta.title || "",
@@ -101,6 +115,7 @@ export function analyseChart(bytes, options = {}) {
             specificTypes: c.SpecificTypes,
         })),
         upstreamCategory: report.Category,
+        windows: windowMatrix,
     };
 }
 

@@ -1,12 +1,15 @@
 {
   "name": "bms-difficulty-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "xxy star rating, dan label and pattern families for BMS charts, in the browser",
+  "description": "xxy star rating, sl/st, dan label and pattern families for BMS charts, in the browser",
   "scripts": {
     "start": "node tools/serve.mjs",
     "verify": "node tools/verify.mjs",
+    "check:model": "node tools/check-model.mjs",
+    "check:worker": "node tools/check-worker.mjs",
+    "check:ui": "node tools/check-ui.mjs",
     "bench": "node tools/bench.mjs"
   }
 }

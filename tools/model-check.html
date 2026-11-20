@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sl/st model check</title>
+<pre id="out">running…</pre>
+<script type="module">
+    // End to end check that the browser can build the window matrix and run the
+    // network: the demo chart should land on "sl-" with raw ~0.0104.
+    import { analyseChart } from "../src/pipeline.js";
+    import { loadDifficultyModel } from "../src/difficulty.js";
+
+    const out = document.getElementById("out");
+    try {
+        const bytes = new Uint8Array(await (await fetch("../samples/demo.bms")).arrayBuffer());
+        const row = analyseChart(bytes, { keymode: "drop", rate: 1 });
+        const model = await loadDifficultyModel("../models/difficulty.bin");
+        const result = model.score(row.windows);
+        out.textContent = [
+            `models ${model.modelCount}`,
+            `raw ${result.raw.toFixed(6)}`,
+            `display ${result.display} label ${result.label} sub ${result.subLabel}`,
+            `star ${row.star.toFixed(2)} dan ${row.dan} pattern ${row.category}`,
+        ].join("\n");
+    } catch (error) {
+        out.textContent = `failed: ${error.message}`;
+    }
+</script>
