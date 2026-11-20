@@ -12,6 +12,8 @@ const port = 9333;
 const browser = spawn(EDGE, [
     "--headless=new",
     "--disable-gpu",
+    "--hide-scrollbars",
+    "--window-size=1200,800",
     `--remote-debugging-port=${port}`,
     "--user-data-dir=" + `${process.env.TEMP}\\bms-web-cdp`,
     "about:blank",
@@ -81,6 +83,13 @@ const detail = await send("Runtime.evaluate", {
 
 console.log("row:", text);
 console.log("detail:", detail.result?.result?.value);
+
+if (process.env.SHOT) {
+    const shot = await send("Page.captureScreenshot", { format: "png" });
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(process.env.SHOT, Buffer.from(shot.result.data, "base64"));
+    console.log("saved", process.env.SHOT);
+}
 
 socket.close();
 browser.kill();
